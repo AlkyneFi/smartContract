@@ -40,6 +40,8 @@ interface AlkyneWallet {
 contract AlkyneFollowModule is FeeModuleBase, FollowValidatorFollowModuleBase {
     using SafeERC20 for IERC20;
 
+    const MULTIPLIER = 100000;
+
     mapping(uint256 => ProfileData) internal _dataByProfile;
 
     constructor(address hub, address moduleGlobals) FeeModuleBase(moduleGlobals) ModuleBase(hub) {}
@@ -91,7 +93,7 @@ contract AlkyneFollowModule is FeeModuleBase, FollowValidatorFollowModuleBase {
         uint256 amount = abi.decode(data, (uint256));
 
         AlkyneWallet(_dataByProfile[profileId].alkyne_wallet_address).addFollower(follower, 
-            amount*100000/_dataByProfile[profileId].max_amount);
+            amount*MULTIPLIER/_dataByProfile[profileId].max_amount);
 
         (address treasury, uint16 treasuryFee) = _treasuryData();
         address recipient = _dataByProfile[profileId].recipient;
