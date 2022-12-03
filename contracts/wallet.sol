@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
-
 pragma solidity 0.8.10;
+pragma abicoder v2;
 
+import '@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol';
+import '@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol';
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -13,15 +15,43 @@ contract AlkyneWallet is Ownable, ReentrancyGuard{
     address[] public followersArray;
     uint256 MULTIPLIER = 100000;
 
+    ISwapRouter public immutable swapRouter;
 
-    function trade(uint256 quantityToSell, address sourceToken,
+    // address public  DAI = 0xF9Dc3F533AcbFC02b827d980505336504805ca9b;
+    // address public  WETH9 = 0x135169DCb4b08ab475FCb42a830Db109A1686B31;
+    // uint24 public  poolFee = 100;
+
+    constructor(ISwapRouter _swapRouter) {
+        swapRouter = _swapRouter;
+    }
+
+
+    function swapExactInputSingle(address tokenIn, address tokenOut, uint24 poolFees,address _to, uint256 amountIn) external returns (uint256 amountOut) {
+        TransferHelper.safeTransferFrom(DAI, msg.sender, address(this), amountIn);
+        TransferHelper.safeApprove(DAI, address(swapRouter), amountIn);
+        ISwapRouter.ExactInputSingleParams memory params =
+            ISwapRouter.ExactInputSingleParams({
+                tokenIn: tokenIn,
+                tokenOut: tokenOut,
+                fee: poolFee,
+                recipient: _to,
+                deadline: block.timestamp,
+                amountIn: amountIn,
+                amountOutMinimum: 0,
+                sqrtPriceLimitX96: 0
+            });
+
+        amountOut = swapRouter.exactInputSingle(params);
+    }
+
+
+    function trade(uint24 poolFee, address _to,uint256 quantityToSell, address sourceToken,
     address destinantionToken) public {
         uint256 amountOwned = IERC20(sourceToken).balanceOf(address(this));
         uint256 portfolioPercentage = (quantityToSell * MULTIPLIER) / amountOwned;
         
         //TODO: trading function
-
-
+        swapExactInputSingle( sourceToken, destinantionToken, poolFee, _to, quantityToSell);
 
         for (uint256 i = 0; i < followersArray.length; i++) {
             address follower = followersArray[i];
@@ -33,6 +63,7 @@ contract AlkyneWallet is Ownable, ReentrancyGuard{
         }
     }
 
+
     function replicateTrade(uint256 portfolioPercentage, address sourceToken,
     address destinantionToken) public nonReentrant {
         uint256 amountOwned = IERC20(sourceToken).balanceOf(address(this));
@@ -41,13 +72,15 @@ contract AlkyneWallet is Ownable, ReentrancyGuard{
         trade(quantityToSell, sourceToken, destinantionToken);
     }
 
+
+ 
+
     function sell(uint256 quantityToSell, address sourceToken) public {
         uint256 amountOwned = IERC20(sourceToken).balanceOf(address(this));
         uint256 portfolioPercentage = (quantityToSell * MULTIPLIER) / amountOwned;
         
         //TODO: selling function
-
-
+      
 
         for (uint256 i = 0; i < followersArray.length; i++) {
             address follower = followersArray[i];
