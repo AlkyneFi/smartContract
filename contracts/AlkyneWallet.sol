@@ -17,12 +17,15 @@ contract AlkyneWallet is Ownable, ReentrancyGuard{
 
     ISwapRouter public immutable swapRouter;
 
-    // address public  DAI = 0xF9Dc3F533AcbFC02b827d980505336504805ca9b;
-    // address public  WETH9 = 0x135169DCb4b08ab475FCb42a830Db109A1686B31;
-    // uint24 public  poolFee = 100;
+    constructor(address _swapRouter) {
+        swapRouter = ISwapRouter(_swapRouter);
+    }
 
-    constructor(ISwapRouter _swapRouter) {
-        swapRouter = _swapRouter;
+    function getMeanSubscriberInvestment() external view returns (uint256 mean) {
+        mean = 0;
+        for (uint256 i=0;i<followersArray.length;i++)
+            mean += followers[followersArray[i]]/followersArray.length;
+        return mean;
     }
 
 
@@ -50,7 +53,6 @@ contract AlkyneWallet is Ownable, ReentrancyGuard{
         uint256 amountOwned = IERC20(sourceToken).balanceOf(address(this));
         uint256 portfolioPercentage = (quantityToSell * MULTIPLIER) / amountOwned;
         
-        //TODO: trading function
         swapExactInputSingle( sourceToken, destinantionToken, poolFee, address(this), quantityToSell);
 
         for (uint256 i = 0; i < followersArray.length; i++) {
