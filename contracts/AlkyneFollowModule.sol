@@ -31,7 +31,7 @@ interface AlkyneWallet {
 }
 
 /**
- * @title FeeFollowModule
+ * @title AlkyneFollowModule
  * @author Lens Protocol
  *
  * @notice This is a simple Lens FollowModule implementation, inheriting from the IFollowModule interface, but with additional
@@ -40,7 +40,7 @@ interface AlkyneWallet {
 contract AlkyneFollowModule is FeeModuleBase, FollowValidatorFollowModuleBase {
     using SafeERC20 for IERC20;
 
-    const MULTIPLIER = 100000;
+    uint256 MULTIPLIER = 100000;
 
     mapping(uint256 => ProfileData) internal _dataByProfile;
 
@@ -63,17 +63,18 @@ contract AlkyneFollowModule is FeeModuleBase, FollowValidatorFollowModuleBase {
         onlyHub
         returns (bytes memory)
     {
-        (address currency, address recipient, uint256 max_amount) = abi.decode(
+        (address currency, address recipient, address alkyne_wallet_address, uint256 max_amount) = abi.decode(
             data,
-            (address, address, uint256)
+            (address, address, address, uint256)
         );
-        if (!_currencyWhitelisted(currency) || recipient == address(0) || amount == 0)
-            revert Errors.InitParamsInvalid();
+        if (!_currencyWhitelisted(currency) || recipient == address(0) || max_amount == 0 || alkyne_wallet_address == address(0))
+            revert("AlkyneFollowModule: Invalid data");
 
         // _dataByProfile[profileId].amount = amount;
         _dataByProfile[profileId].currency = currency;
         _dataByProfile[profileId].recipient = recipient;
         _dataByProfile[profileId].max_amount = max_amount;
+        _dataByProfile[profileId].alkyne_wallet_address = alkyne_wallet_address;
         return data;
     }
 
@@ -88,7 +89,6 @@ contract AlkyneFollowModule is FeeModuleBase, FollowValidatorFollowModuleBase {
     ) external override onlyHub {
         // uint256 amount = _dataByProfile[profileId].amount;
         address currency = _dataByProfile[profileId].currency;
-        _validateDataIsExpected(data, currency, amount);
 
         uint256 amount = abi.decode(data, (uint256));
 

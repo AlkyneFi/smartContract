@@ -13,7 +13,7 @@ contract AlkyneWallet is Ownable, ReentrancyGuard{
     uint256 public fundedBalance;
     mapping(address => uint256) public followers;
     address[] public followersArray;
-    uint256 MULTIPLIER = 100000;
+    uint256 immutable MULTIPLIER = 100000;
 
     ISwapRouter public immutable swapRouter;
 
@@ -26,14 +26,14 @@ contract AlkyneWallet is Ownable, ReentrancyGuard{
     }
 
 
-    function swapExactInputSingle(address tokenIn, address tokenOut, uint24 poolFees,address _to, uint256 amountIn) external returns (uint256 amountOut) {
-        TransferHelper.safeTransferFrom(DAI, msg.sender, address(this), amountIn);
-        TransferHelper.safeApprove(DAI, address(swapRouter), amountIn);
+    function swapExactInputSingle(address tokenIn, address tokenOut, uint24 poolFees,address _to, uint256 amountIn) internal returns (uint256 amountOut) {
+        TransferHelper.safeTransferFrom(tokenIn, msg.sender, address(this), amountIn);
+        TransferHelper.safeApprove(tokenIn, address(swapRouter), amountIn);
         ISwapRouter.ExactInputSingleParams memory params =
             ISwapRouter.ExactInputSingleParams({
                 tokenIn: tokenIn,
                 tokenOut: tokenOut,
-                fee: poolFee,
+                fee: poolFees,
                 recipient: _to,
                 deadline: block.timestamp,
                 amountIn: amountIn,
@@ -45,31 +45,31 @@ contract AlkyneWallet is Ownable, ReentrancyGuard{
     }
 
 
-    function trade(uint24 poolFee, address _to,uint256 quantityToSell, address sourceToken,
+    function trade(uint24 poolFee, uint256 quantityToSell, address sourceToken,
     address destinantionToken) public {
         uint256 amountOwned = IERC20(sourceToken).balanceOf(address(this));
         uint256 portfolioPercentage = (quantityToSell * MULTIPLIER) / amountOwned;
         
         //TODO: trading function
-        swapExactInputSingle( sourceToken, destinantionToken, poolFee, _to, quantityToSell);
+        swapExactInputSingle( sourceToken, destinantionToken, poolFee, address(this), quantityToSell);
 
         for (uint256 i = 0; i < followersArray.length; i++) {
             address follower = followersArray[i];
             uint256 followerBalance = followers[follower];
 
             if (followerBalance > portfolioPercentage) {
-                AlkyneWallet(follower).replicateTrade(portfolioPercentage, sourceToken, destinantionToken);
+                AlkyneWallet(follower).replicateTrade(poolFee, portfolioPercentage, sourceToken, destinantionToken);
             }
         }
     }
 
 
-    function replicateTrade(uint256 portfolioPercentage, address sourceToken,
+    function replicateTrade(uint24 poolFee, uint256 portfolioPercentage, address sourceToken,
     address destinantionToken) public nonReentrant {
         uint256 amountOwned = IERC20(sourceToken).balanceOf(address(this));
         uint256 quantityToSell = (amountOwned * portfolioPercentage) / MULTIPLIER;
 
-        trade(quantityToSell, sourceToken, destinantionToken);
+        trade(poolFee, quantityToSell, sourceToken, destinantionToken);
     }
 
 

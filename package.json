@@ -11,6 +11,7 @@
     "@typechain/hardhat": "^6.1.2",
     "@types/chai": "^4.3.3",
     "@types/mocha": "^9.1.1",
+    "@uniswap/v3-periphery": "^1.4.3",
     "chai": "^4.3.6",
     "ethers": "^5.6.9",
     "hardhat-gas-reporter": "^1.0.8",
