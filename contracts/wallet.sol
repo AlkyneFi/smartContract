@@ -7,11 +7,11 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 
-contract AlkyneWallet is Ownable {
+contract AlkyneWallet is Ownable, ReentrancyGuard{
     uint256 public fundedBalance;
     mapping(address => uint256) public followers;
     address[] public followersArray;
-    const MULTIPLIER = 100000;
+    uint256 MULTIPLIER = 100000;
 
 
     function trade(uint256 quantityToSell, address sourceToken,
@@ -41,7 +41,7 @@ contract AlkyneWallet is Ownable {
         trade(quantityToSell, sourceToken, destinantionToken);
     }
 
-    function sell(uint256 quantityToSell, address sourceToken) {
+    function sell(uint256 quantityToSell, address sourceToken) public {
         uint256 amountOwned = IERC20(sourceToken).balanceOf(address(this));
         uint256 portfolioPercentage = (quantityToSell * MULTIPLIER) / amountOwned;
         
@@ -54,21 +54,21 @@ contract AlkyneWallet is Ownable {
             uint256 followerBalance = followers[follower];
 
             if (followerBalance > portfolioPercentage) {
-                AlkyneWallet(follower).replicateSell(portfolioPercentage, sourceToken, destinantionToken);
+                AlkyneWallet(follower).replicateSell(portfolioPercentage, sourceToken);
             }
         }        
     }
 
-    function replicateSell(uint256 portfolioPercentage, address sourceToken,
+    function replicateSell(uint256 portfolioPercentage, address sourceToken
      ) public nonReentrant {
         uint256 amountOwned = IERC20(sourceToken).balanceOf(address(this));
         uint256 quantityToSell = (amountOwned * portfolioPercentage) / MULTIPLIER;
 
-        sell(quantityToSell, sourceToken,);
+        sell(quantityToSell, sourceToken);
     }    
 
     function withdraw(uint256 amount) public onlyOwner {
-        owner().transfer(amount);
+        payable(owner()).transfer(amount);
         if (fundedBalance > amount) {
             fundedBalance -= amount;
         } else {
